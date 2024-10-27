@@ -1,0 +1,84 @@
+{
+  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "vcs": {
+    "root": ".",
+    "enabled": true,
+    "clientKind": "git"
+  },
+  "files": {
+    "include": ["*.ts", "*.js", "*.cjs", "*.mjs", "*.jsx", "*.tsx", "*.d.ts", "*.json", "*.jsonc"],
+    "ignoreUnknown": true,
+    "ignore": ["node_modules", "dist"]
+  },
+  "organizeImports": {
+    "enabled": false
+  },
+  "formatter": {
+    "enabled": true,
+    "lineWidth": 100,
+    "indentWidth": 2,
+    "indentStyle": "space",
+    "formatWithErrors": true,
+    "include": ["*.ts", "*.js", "*.jsx", "*.cjs", "*.mjs", "*.tsx", "*.d.ts", "*.json", "*.jsonc"],
+    "ignore": ["node_modules", "dist", "_"]
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "all": true,
+      "style": {
+        "noNamespace": "off",
+        "noDefaultExport": "off",
+        "useBlockStatements": "off",
+        "useNamingConvention": "off",
+        "useSelfClosingElements": "off",
+        "noUnusedTemplateLiteral": "off"
+      },
+      "nursery": {
+        "all": true,
+        "useImportRestrictions": "off"
+      },
+      "complexity": {
+        "useLiteralKeys": "off",
+        "noUselessEmptyExport": "off"
+      },
+      "correctness": {
+        "noUnusedVariables": "off",
+        "noUndeclaredVariables": "off"
+      },
+      "suspicious": {
+        "noConsole": "off",
+        "noRedeclare": "off",
+        "noExplicitAny": "off",
+        "noEmptyInterface": "off"
+      }
+    }
+  },
+  "json": {
+    "parser": {
+      "allowComments": true
+    },
+    "formatter": {
+      "enabled": true,
+      "lineWidth": 100,
+      "indentWidth": 2
+    }
+  },
+  "javascript": {
+    "parser": {
+      "unsafeParameterDecoratorsEnabled": true
+    },
+    "formatter": {
+      "enabled": true,
+      "lineWidth": 100,
+      "indentWidth": 2,
+      "indentStyle": "space",
+      "quoteStyle": "single",
+      "trailingCommas": "none",
+      "semicolons": "asNeeded",
+      "jsxQuoteStyle": "single",
+      "quoteProperties": "asNeeded",
+      "arrowParentheses": "asNeeded"
+    }
+  }
+}
