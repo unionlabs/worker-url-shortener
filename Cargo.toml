@@ -1,0 +1,36 @@
+[package]
+name = "url-shortener"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "A URL shortener"
+repository = "https://github.com/union-labs/url-shortener"
+
+[package.metadata.release]
+release = false
+
+# https://github.com/rustwasm/wasm-pack/issues/1247
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+http = "1.1"
+url = "2.5.2"
+cfg-if = "1.0.0"
+serde = "1.0.214"
+serde_json = "1.0.132"
+wasm-bindgen-futures = "0.4.45"
+console_error_panic_hook = { version = "0.1.7" }
+worker = { version = "0.4.2", features = ['http', 'axum'] }
+uuid = { version = "1.11.0", features = [
+  "v4",
+  "js",
+  "fast-rng",
+  "macro-diagnostics",
+] }
+
+[profile.release]
+opt-level = "s"
