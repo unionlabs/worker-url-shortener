@@ -37,7 +37,7 @@ pub async fn handle_create(
 
     let random_uuid = Uuid::new_v4();
     let key = random_uuid.to_string()[0..6].to_string();
-    let insert_new = context.kv("KV")?.put(&key, url);
+    let insert_new = context.kv("KV")?.put(&key, url).unwrap().execute().await;
 
     if insert_new.is_err() {
         return Response::error("failed to insert new key", 500);
@@ -56,11 +56,16 @@ pub async fn handle_url_expand(
         return Response::error("invalid key: ".to_string() + key, 400);
     }
 
-    let expanded_url = context.kv("KV")?.get(key).text().await?;
-    if expanded_url.is_none() {
-        let base_url = request.url().unwrap();
-        return Response::redirect(base_url);
+    let expanded_url = context.kv("KV")?.get(&key).text().await?;
+    if expanded_url.is_some() {
+        return Response::redirect(Url::parse(&expanded_url.unwrap()).unwrap());
     }
 
-    return Response::redirect(Url::parse(&expanded_url.unwrap()).unwrap());
+    let environment = context.env.var("ENVIRONMENT").unwrap().to_string();
+    let base_url = match environment.as_str() {
+        "development" => "http://localhost:8787",
+        _ => &request.url().unwrap().origin().ascii_serialization(),
+    };
+
+    return Response::redirect(Url::parse(&base_url).unwrap());
 }

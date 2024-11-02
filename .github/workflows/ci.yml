@@ -12,34 +12,41 @@ defaults:
     shell: bash
 
 env:
+  NAME: 'url-shortener'
+  CARGO_TERM_COLOR: 'always'
   ACTIONS_RUNNER_DEBUG: true
 
 jobs:
   deploy:
-    timeout-minutes: 3
     runs-on: ['ubuntu-latest']
     steps:
       - name: 🔑 Checkout
         uses: actions/checkout@v4
 
-      - name: '🐰 Set up Bun'
+      - name: 🦀 Set up Rust
+        run: |
+          rustup set auto-self-update disable
+          rustup toolchain install stable --profile minimal
+
+      - uses: Swatinem/rust-cache@v2.7.5
+        with:
+          prefix-key: v0 # increment this to bust the cache if needed
+
+      - name: Install sccache
+        uses: mozilla-actions/sccache-action@v0.0.6
+        env:
+          RUSTC_WRAPPER: 'sccache'
+          SCCACHE_GHA_ENABLED: true
+
+      - name: 🛠️ Build worker
+        run: cargo build --release
+
+      - name: 🐰 Set up Bun
         uses: oven-sh/setup-bun@main
         with:
           bun-version: 'latest'
 
-      - name: '📦 Install'
-        run: bun install --frozen-lockfile
-
-      - name: '🧹 Lint & Format'
-        run: bunx @biomejs/biome check . --reporter='github'
-
-      - name: '🧪 Typecheck'
-        run: bun typecheck
-
-      - name: '🔧 Build'
-        run: bun run build
-
-      - name: '🔸 Cloudflare Workers - Deploy 🚀'
+      - name: 🔸 Cloudflare Workers - Deploy
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
