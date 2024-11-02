@@ -61,11 +61,5 @@ pub async fn handle_url_expand(
         return Response::redirect(Url::parse(&expanded_url.unwrap()).unwrap());
     }
 
-    let environment = context.env.var("ENVIRONMENT").unwrap().to_string();
-    let base_url = match environment.as_str() {
-        "development" => "http://localhost:8787",
-        _ => &request.url().unwrap().origin().ascii_serialization(),
-    };
-
-    Response::redirect(Url::parse(base_url).unwrap())
+    Response::error("invalid key: ".to_string() + key, 400)
 }
