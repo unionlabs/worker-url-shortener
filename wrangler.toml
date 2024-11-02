@@ -1,32 +1,26 @@
 #: schema https://esm.sh/wrangler/config-schema.json
 # https://developers.cloudflare.com/workers/wrangler/configuration
-
-# default stage is "development"
-
-#
-# start of globally inheritable configuration
-name = "shorted"
-main = "./src/index.ts"
-minify = true
+name = "url-shortener"
 keep_vars = true
-compatibility_date = "2024-10-14"
-compatibility_flags = [ "nodejs_compat" ]
-# end of globally inheritable configuration
-#
+main = "./build/worker/shim.mjs"
+compatibility_date = "2024-11-01"
 
 workers_dev = true
 vars = { ENVIRONMENT = "development" }
 
-[[kv_namespaces]]
-binding = "KV"
-id = "96961fcf1ee84e3891cba0c326efe769"
+kv_namespaces = [
+  { binding = "KV", id = "96961fcf1ee84e3891cba0c326efe769", preview_id = "a4134835b7c74de38137d6545155aea0" },
+]
+
+[build]
+command = "cargo install --quiet worker-build && worker-build --release"
 
 [env.production]
-name = "shorted"
+name = "url-shortener"
 workers_dev = true
 vars = { ENVIRONMENT = "production" }
 kv_namespaces = [
-  { binding = "KV", id = "96961fcf1ee84e3891cba0c326efe769" }
+  { binding = "KV", id = "96961fcf1ee84e3891cba0c326efe769", preview_id = "a4134835b7c74de38137d6545155aea0" },
 ]
 # https://developers.cloudflare.com/workers/observability/logs/workers-logs/
 [env.production.observability]

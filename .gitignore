@@ -1,3 +1,13 @@
+
+target
+node_modules
+.wrangler
+pkg
+
+_
+.dev.vars
+.vscode
+.env
 # Based on https://raw.githubusercontent.com/github/gitignore/main/Node.gitignore
 
 # Logs
@@ -180,3 +190,4 @@ dist
 _
 .dev.vars
 .vscode
+build
