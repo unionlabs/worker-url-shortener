@@ -56,7 +56,7 @@ pub async fn handle_url_expand(
         return Response::error("invalid key: ".to_string() + key, 400);
     }
 
-    let expanded_url = context.kv("KV")?.get(&key).text().await?;
+    let expanded_url = context.kv("KV")?.get(key).text().await?;
     if expanded_url.is_some() {
         return Response::redirect(Url::parse(&expanded_url.unwrap()).unwrap());
     }
@@ -67,5 +67,5 @@ pub async fn handle_url_expand(
         _ => &request.url().unwrap().origin().ascii_serialization(),
     };
 
-    return Response::redirect(Url::parse(&base_url).unwrap());
+    Response::redirect(Url::parse(base_url).unwrap())
 }
