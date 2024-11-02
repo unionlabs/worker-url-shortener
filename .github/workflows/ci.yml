@@ -26,7 +26,10 @@ jobs:
       - name: 🦀 Set up Rust
         run: |
           rustup set auto-self-update disable
-          rustup toolchain install stable --profile minimal
+          rustup toolchain install nightly --profile minimal
+          rustup default nightly
+          rustup target add wasm32-unknown-unknown
+          cargo install --quiet worker-build
 
       - uses: Swatinem/rust-cache@v2.7.5
         with:
@@ -39,7 +42,7 @@ jobs:
           SCCACHE_GHA_ENABLED: true
 
       - name: 🛠️ Build worker
-        run: cargo install --quiet worker-build && worker-build --release
+        run: worker-build --release
 
       - name: 🐰 Set up Bun
         uses: oven-sh/setup-bun@main
