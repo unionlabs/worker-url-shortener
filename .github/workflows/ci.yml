@@ -39,7 +39,7 @@ jobs:
           SCCACHE_GHA_ENABLED: true
 
       - name: 🛠️ Build worker
-        run: cargo build --release
+        run: cargo install --quiet worker-build && worker-build --release
 
       - name: 🐰 Set up Bun
         uses: oven-sh/setup-bun@main
