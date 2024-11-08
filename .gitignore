@@ -191,3 +191,15 @@ _
 .dev.vars
 .vscode
 build
+# Devenv
+.devenv*
+devenv.local.nix
+
+# direnv
+.direnv
+
+# pre-commit
+.pre-commit-config.yaml
+._*
+.devenv*
+_
