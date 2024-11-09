@@ -1,8 +1,8 @@
-name: Deploy
+name: Checks
 
 on:
-  push:
-    branches: [main]
+  pull_request:
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -17,41 +17,27 @@ env:
   ACTIONS_RUNNER_DEBUG: true
 
 jobs:
-  deploy:
+  checks:
     runs-on: ['ubuntu-latest']
     steps:
       - name: 🔑 Checkout
         uses: actions/checkout@v4
 
-      - name: 🦀 Set up Rust
-        run: |
-          rustup set auto-self-update disable
-          rustup toolchain install 1.81.0 --profile minimal
-          rustup default 1.81.0
+      - name: Install Nix
+        uses: cachix/install-nix-action@v30
 
-      - uses: Swatinem/rust-cache@v2.7.5
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v15
         with:
-          prefix-key: v0 # increment this to bust the cache if needed
+          name: 'devenv'
 
-      - name: Install sccache
-        uses: mozilla-actions/sccache-action@v0.0.6
-        env:
-          RUSTC_WRAPPER: 'sccache'
-          SCCACHE_GHA_ENABLED: true
+      - name: Install devenv.sh
+        run: nix profile install nixpkgs#devenv
 
-      - name: 🛠️ Build worker
-        run: cargo install --quiet worker-build && worker-build --release
-
-      - name: 🐰 Set up Bun
-        uses: oven-sh/setup-bun@main
-        with:
-          bun-version: 'latest'
-
-      - name: 🔸 Cloudflare Workers - Deploy
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - name: Lint
         run: |
-          bun x wrangler@latest deploy \
-            --env='production' \
-            --config='wrangler.toml'
+          fmt
+          lint
+
+      - name: Build
+        run: build
