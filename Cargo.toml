@@ -17,7 +17,7 @@ wasm-opt = false
 crate-type = ["cdylib"]
 
 [dependencies]
-url = "2.5.2"
+url = "2.5.3"
 serde = "1.0.214"
 # needed to enable the "js" feature for compatibility with wasm,
 # see https://docs.rs/getrandom/#webassembly-support

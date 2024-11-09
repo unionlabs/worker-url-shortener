@@ -55,7 +55,7 @@
                   jq
                   git
                   bun
-                  just
+                  taplo
                   direnv
                   binaryen
                   nixfmt-rfc-style
@@ -63,10 +63,12 @@
                 ];
                 scripts = {
                   fmt.exec = ''
-                    nixfmt *.nix --width=100
+                    taplo fmt
                     cargo fmt --all --check
+                    nixfmt *.nix --width=100
                   '';
                   lint.exec = ''
+                    taplo lint
                     cargo clippy --all-targets --all-features
                   '';
                   build.exec = ''
