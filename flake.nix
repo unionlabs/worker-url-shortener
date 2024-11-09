@@ -1,4 +1,5 @@
 {
+  description = "URL Shortener Worker";
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
     systems.url = "github:nix-systems/default";
@@ -37,8 +38,14 @@
             modules = [
               {
                 # https://devenv.sh/reference/options/
-                languages.nix.enable = true;
+                scripts = import ./tasks.nix;
 
+                dotenv = {
+                  enable = true;
+                  filename = [ ".env" ];
+                };
+
+                languages.nix.enable = true;
                 languages.rust = {
                   enable = true;
                   channel = "nightly";
@@ -49,19 +56,25 @@
                     "clippy"
                     "rustfmt"
                     "rust-analyzer"
+
                   ];
                 };
+
+                # for development only
+                # this is the default location when you run d1 with `--local`
+                env.D1_DATABASE_FILEPATH = ".wrangler/state/v3/d1/miniflare-D1DatabaseObject/*.db";
+
                 packages = with pkgs; [
                   jq
                   git
                   bun
                   taplo
                   direnv
+                  sqlfluff
                   binaryen
                   nixfmt-rfc-style
                   nodePackages_latest.nodejs
                 ];
-                scripts = import ./tasks.nix;
               }
             ];
           };

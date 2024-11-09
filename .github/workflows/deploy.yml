@@ -3,6 +3,7 @@ name: Deploy
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -13,7 +14,6 @@ defaults:
 
 env:
   NAME: 'url-shortener'
-  CARGO_TERM_COLOR: 'always'
   ACTIONS_RUNNER_DEBUG: true
 
 jobs:

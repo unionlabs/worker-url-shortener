@@ -19,10 +19,11 @@ crate-type = ["cdylib"]
 [dependencies]
 url = "2.5.3"
 serde = "1.0.214"
+serde_json = "1.0.104"
 # needed to enable the "js" feature for compatibility with wasm,
 # see https://docs.rs/getrandom/#webassembly-support
 getrandom = { version = "0.2", features = ["js"] }
-worker = { version = "0.4.2", features = ['http', 'axum'] }
+worker = { version = "0.4.2", features = ['http', 'axum', 'd1'] }
 uuid = { version = "1.11.0", features = [
   "v4",
   "fast-rng",

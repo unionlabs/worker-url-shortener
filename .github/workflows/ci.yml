@@ -13,7 +13,6 @@ defaults:
 
 env:
   NAME: 'url-shortener'
-  CARGO_TERM_COLOR: 'always'
   ACTIONS_RUNNER_DEBUG: true
 
 jobs:
@@ -34,10 +33,20 @@ jobs:
       - name: Install devenv.sh
         run: nix profile install nixpkgs#devenv
 
+      - name: Format
+        run: |
+          taplo fmt *.toml
+          cargo fmt --all --check
+          nixfmt *.nix --width=100
+          sqlfluff format --dialect sqlite schema.sql
+
       - name: Lint
         run: |
-          fmt
-          lint
+          taplo lint *.toml
+          sqlfluff lint --dialect sqlite schema.sql
+          cargo clippy --all-targets --all-features -- -D warnings
 
       - name: Build
-        run: build
+        run: |
+          # runs: `cargo build --release --target wasm32-unknown-unknown`
+          build

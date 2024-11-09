@@ -8,8 +8,8 @@ compatibility_date = "2024-11-01"
 workers_dev = true
 vars = { ENVIRONMENT = "development" }
 
-kv_namespaces = [
-  { binding = "KV", id = "96961fcf1ee84e3891cba0c326efe769", preview_id = "a4134835b7c74de38137d6545155aea0" },
+d1_databases = [
+  { binding = "DB", database_name = "url-short-d1", database_id = "3da5b327-e066-4915-a8dd-22cddbcbcf0b" },
 ]
 
 [build]
@@ -19,9 +19,11 @@ command = "cargo install --quiet worker-build && worker-build --release"
 name = "url-shortener"
 workers_dev = true
 vars = { ENVIRONMENT = "production" }
-kv_namespaces = [
-  { binding = "KV", id = "96961fcf1ee84e3891cba0c326efe769", preview_id = "a4134835b7c74de38137d6545155aea0" },
+
+d1_databases = [
+  { binding = "DB", database_name = "url-short-d1", database_id = "3da5b327-e066-4915-a8dd-22cddbcbcf0b" },
 ]
+
 # https://developers.cloudflare.com/workers/observability/logs/workers-logs/
 [env.production.observability]
 enabled = true
