@@ -54,12 +54,10 @@
                 packages = with pkgs; [
                   jq
                   git
-                  bun
-                  just
                   direnv
                   binaryen
                   nixfmt-rfc-style
-                  nodePackages_latest.nodejs
+                  nodePackages_latest.wrangler
                 ];
                 scripts = {
                   fmt.exec = ''
@@ -73,13 +71,13 @@
                     cargo build --release --target wasm32-unknown-unknown
                   '';
                   dev.exec = ''
-                    bunx wrangler@latest --config='wrangler.toml' dev
+                    wrangler --config='wrangler.toml' dev
                   '';
                   dev-remote.exec = ''
-                    bunx wrangler@latest --config='wrangler.toml' dev --remote
+                    wrangler --config='wrangler.toml' dev --remote
                   '';
                   deploy.exec = ''
-                    bunx wrangler@latest deploy --env='production' --config='wrangler.toml'
+                    wrangler --env='production' --config='wrangler.toml'
                   '';
                   clean.exec = ''
                     rm -rf build
