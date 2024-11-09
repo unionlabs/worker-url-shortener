@@ -28,9 +28,3 @@ clean:
     rm -rf build
     rm -rf target
     rm -rf node_modules
-
-rm-dots:
-    sudo find . -type f -name "._*" -exec rm -r {} +
-    sudo find . -type f -name "._*" -exec rm -r {} +
-    sudo find . -type f -name "._*" -exec rm -r {} +
-    sudo find . -type f -name "._*" -exec rm -r {} +
