@@ -64,7 +64,6 @@
                 scripts = {
                   fmt.exec = ''
                     nixfmt *.nix --width=100
-                    just --fmt --unstable
                     cargo fmt --all --check
                   '';
                   lint.exec = ''
