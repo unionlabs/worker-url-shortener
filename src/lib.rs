@@ -1,9 +1,34 @@
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use url::Url;
 use worker::*;
 
 mod utils;
 use utils::*;
+
+#[derive(Deserialize, Serialize)]
+struct Record {
+    id: u64,
+    url: String,
+    created_at: String,
+}
+
+use std::fmt;
+
+impl fmt::Display for KvError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            KvError::Secret(msg) => write!(f, "Secret error: {}", msg),
+            KvError::Var(msg) => write!(f, "Var error: {}", msg),
+        }
+    }
+}
+
+impl From<KvError> for worker::Error {
+    fn from(error: KvError) -> Self {
+        worker::Error::from(error.to_string())
+    }
+}
 
 const DEV_ROUTES: [&str; 2] = ["/list", "/env"];
 
@@ -14,31 +39,24 @@ async fn fetch(request: Request, env: Env, _context: Context) -> Result<Response
         return Response::error("not allowed", 403);
     }
 
-    let router = Router::new()
+    let mut router = Router::new()
         .get("/", |_, _| Response::ok("zkgm"))
         .post("/", |_, _| Response::ok("zkgm"))
         .post_async("/create", handle_create)
         .get_async("/:key", handle_url_expand);
 
     let url = request.url()?;
-    if !DEV_ROUTES.contains(&url.path()) {
-        return router.run(request, env).await;
+    if DEV_ROUTES.contains(&url.path()) {
+        if let Some(key) = url.query_pairs().find(|(k, _)| k == "key").map(|(_, v)| v) {
+            if let Ok(stored_key) = get_secret("DEV_ROUTES_KEY", &env) {
+                if key == stored_key {
+                    router = router.get_async("/list", dev_handle_list_urls);
+                }
+            }
+        }
     }
 
-    let url_key = url.query().and_then(|q| q.split("key=").nth(1));
-    if url_key.is_none() {
-        return router.run(request, env).await;
-    }
-
-    let stored_key = get_secret("DEV_ROUTES_KEY", &env).unwrap_or_default();
-
-    if url_key != Some(&stored_key) {
-        return router.run(request, env).await;
-    }
-    return router
-        .get_async("/list", dev_handle_list_urls)
-        .run(request, env)
-        .await;
+    router.run(request, env).await
 }
 
 // handles `POST /create --data-binary 'https://example.com/foo/bar'`
@@ -109,11 +127,11 @@ pub async fn dev_handle_list_urls(
     _request: Request,
     context: RouteContext<()>,
 ) -> worker::Result<Response> {
-    let d1 = context.env.d1("DB");
-    let statement = d1?.prepare("SELECT * FROM urls");
-    let query = statement.bind(&[]);
-    let result = query?.all().await?;
+    let d1 = context.env.d1("DB")?;
+    let statement = d1.prepare("SELECT * FROM urls");
+    // let query = statement.bind(&[])?;
+    let result = statement.all().await?;
 
-    let urls: Vec<Value> = result.results()?;
-    Response::from_json(&urls)
+    let records: Vec<Record> = result.results()?;
+    Response::from_json(&records)
 }
