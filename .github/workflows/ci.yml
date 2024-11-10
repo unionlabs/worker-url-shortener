@@ -46,12 +46,12 @@ jobs:
 
       - name: Format
         run: |
-          bunx taplo@latest fmt *.toml
+          bunx @taplo/cli@latest fmt *.toml
           cargo fmt --all --check
 
       - name: Lint
         run: |
-          bunx taplo@latest lint *.toml
+          bunx @taplo/cli@latest lint *.toml
           cargo clippy --all-targets --all-features -- -D warnings
 
       - name: 🛠️ Build worker
