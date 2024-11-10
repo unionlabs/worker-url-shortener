@@ -27,6 +27,10 @@ jobs:
           rustup set auto-self-update disable
           rustup toolchain install 1.81.0 --profile minimal
           rustup default 1.81.0
+          #
+          # install rustfmt and clippy
+          rustup component add rustfmt
+          rustup component add clippy
 
       - name: Setup Rust Cache
         uses: Swatinem/rust-cache@v2.7.5
