@@ -1,4 +1,7 @@
 {
+  echo-env.exec = ''
+    echo $D1_DATABASE_FILEPATH
+  '';
   wrangler.exec = ''
     bunx wrangler@latest --config='wrangler.toml' "$@"
   '';
@@ -12,6 +15,7 @@
     taplo lint *.toml
     cargo clippy --all-targets --all-features
     sqlfluff lint --dialect sqlite ./schema.sql
+    deadnix --no-lambda-pattern-names && statix check .
   '';
   build.exec = ''
     cargo build --release --target wasm32-unknown-unknown
@@ -20,9 +24,12 @@
   dev.exec = ''
     bunx wrangler@latest --config='wrangler.toml' dev "$@"
   '';
+  d1-create-database.exec = ''
+    bunx wrangler@latest --config='wrangler.toml' d1 create url-short-d1 "$@"
+  '';
   # optional: `--local`, `--remote`
   d1-bootstrap.exec = ''
-    bunx wrangler@latest --config='wrangler.toml' d1 execute url-short-d1 --file='schema.sql' "$@"
+    bunx wrangler@latest --config='wrangler.toml' d1 execute url-short-d1 --file='schema.sql'
   '';
   # optional: `--local`, `--remote`
   # required: `--command="SELECT * FROM urls"`
@@ -34,7 +41,7 @@
   '';
   # only works locally in development
   d1-viewer.exec = ''
-    bunx @outerbase/studio@latest $D1_DATABASE_FILEPATH --port=4000
+    bunx @outerbase/studio@latest $(eval echo $D1_DATABASE_FILEPATH) --port=4000
   '';
   deploy.exec = ''
     bunx wrangler@latest deploy --env='production' --config='wrangler.toml'
