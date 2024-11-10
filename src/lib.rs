@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use url::Url;
-use uuid::Uuid;
 use worker::*;
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -11,16 +11,27 @@ struct GenericResponse {
 
 #[event(fetch)]
 async fn main(request: Request, env: Env, _context: Context) -> Result<Response> {
-    Router::new()
+    let environment = env.var("ENVIRONMENT").unwrap().to_string();
+    if environment.trim().is_empty() {
+        return Response::error("not allowed", 403);
+    }
+
+    let mut router = Router::new()
+        // public routes
         .get("/", index_route)
         .post("/", index_route)
         .post_async("/create", handle_create)
-        .get_async("/:key", handle_url_expand)
-        .run(request, env)
-        .await
+        .get_async("/:key", handle_url_expand);
+
+    if environment == "development" {
+        // dev-only routes
+        // quick way to check records are inserted
+        router = router.get_async("/list", dev_handle_list_urls);
+    }
+
+    return router.run(request, env).await;
 }
 
-// handles `GET /` and `POST /`
 pub fn index_route(_request: Request, _context: RouteContext<()>) -> worker::Result<Response> {
     Response::ok("zkgm")
 }
@@ -35,37 +46,53 @@ pub async fn handle_create(
         return Response::error("provided url is not valid", 400);
     }
 
-    let random_uuid = Uuid::new_v4();
-    let key = random_uuid.to_string()[0..6].to_string();
-    let insert_new = context.kv("KV")?.put(&key, url).unwrap().execute().await;
+    let d1 = context.env.d1("DB");
+    let statement = d1?.prepare("INSERT INTO urls (url) VALUES (?)");
+    let query = statement.bind(&[url.into()]);
+    let result = query?.run().await?.success();
 
-    if insert_new.is_err() {
-        return Response::error("failed to insert new key", 500);
+    if result {
+        return Response::ok("ok");
     }
 
-    Response::ok(&key)
+    Response::error("failed to insert new key", 500)
 }
 
-// checks `GET /:key{[0-9a-z]{6}}`
+// checks `GET /:key{[0-9]}`
 pub async fn handle_url_expand(
     request: Request,
     context: RouteContext<()>,
 ) -> worker::Result<Response> {
     let key = &request.path().to_string()[1..];
-    if key.len() != 6 || !key.chars().all(|char| char.is_alphanumeric()) {
+    if key.parse::<u64>().is_err() {
         return Response::error("invalid key: ".to_string() + key, 400);
     }
 
-    let expanded_url = context.kv("KV")?.get(key).text().await?;
-    if expanded_url.is_some() {
-        return Response::redirect(Url::parse(&expanded_url.unwrap()).unwrap());
+    let d1 = context.env.d1("DB");
+    let statement = d1?.prepare("SELECT url FROM urls WHERE id = ?");
+    let query = statement.bind(&[key.into()]);
+    let result: Option<Value> = query?.first::<Value>(None).await?;
+
+    match result {
+        Some(Value::Object(object)) => {
+            if let Some(Value::String(url)) = object.get("url") {
+                return Response::redirect(Url::parse(url)?);
+            }
+            Response::error("Invalid URL format", 400)
+        }
+        _ => Response::error("Invalid key: ".to_string() + key, 400),
     }
+}
 
-    let environment = context.env.var("ENVIRONMENT").unwrap().to_string();
-    let base_url = match environment.as_str() {
-        "development" => "http://localhost:8787",
-        _ => &request.url().unwrap().origin().ascii_serialization(),
-    };
+pub async fn dev_handle_list_urls(
+    _request: Request,
+    context: RouteContext<()>,
+) -> worker::Result<Response> {
+    let d1 = context.env.d1("DB");
+    let statement = d1?.prepare("SELECT * FROM urls");
+    let query = statement.bind(&[]);
+    let result = query?.all().await?;
 
-    Response::redirect(Url::parse(base_url).unwrap())
+    let urls: Vec<Value> = result.results()?;
+    Response::from_json(&urls)
 }
