@@ -58,7 +58,7 @@
 
                 # for development only
                 # this is the default location when you run d1 with `--local`
-                env.D1_DATABASE_FILEPATH =
+                env.D1_DATABASE_FILEPATH = # TODO: there has to be a simpler and better way to do this
                   let
                     dbDir = ".wrangler/state/v3/d1/miniflare-D1DatabaseObject";
                   in

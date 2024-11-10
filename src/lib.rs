@@ -1,29 +1,11 @@
-use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use url::Url;
 use worker::*;
 
-#[derive(Debug, Deserialize, Serialize)]
-struct GenericResponse {
-    status: u16,
-    message: String,
-}
+mod utils;
+use utils::*;
 
 const DEV_ROUTES: [&str; 2] = ["/list", "/env"];
-
-pub fn get_secret(name: &str, env: &Env) -> Option<String> {
-    match env.secret(name) {
-        Ok(value) => Some(value.to_string()),
-        Err(_) => None,
-    }
-}
-
-pub fn get_var(name: &str, env: &Env) -> Option<String> {
-    match env.var(name) {
-        Ok(value) => Some(value.to_string()),
-        Err(_) => None,
-    }
-}
 
 #[event(fetch)]
 async fn fetch(request: Request, env: Env, _context: Context) -> Result<Response> {
@@ -42,8 +24,6 @@ async fn fetch(request: Request, env: Env, _context: Context) -> Result<Response
     if !DEV_ROUTES.contains(&url.path()) {
         return router.run(request, env).await;
     }
-
-    console_log!("{}", url.query().unwrap_or_default());
 
     let url_key = url.query().and_then(|q| q.split("key=").nth(1));
     if url_key.is_none() {
