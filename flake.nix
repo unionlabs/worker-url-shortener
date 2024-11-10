@@ -1,6 +1,7 @@
 {
   description = "URL Shortener Worker";
   inputs = {
+
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
     systems.url = "github:nix-systems/default";
 
@@ -26,7 +27,6 @@
       packages = forEachSystem (system: {
         devenv-up = self.devShells.${system}.default.config.procfileScript;
       });
-
       devShells = forEachSystem (
         system:
         let
@@ -40,11 +40,7 @@
                 # https://devenv.sh/reference/options/
                 scripts = import ./tasks.nix;
 
-                dotenv = {
-                  enable = true;
-                  filename = [ ".env" ];
-                };
-
+                dotenv.enable = true;
                 languages.nix.enable = true;
                 languages.rust = {
                   enable = true;
@@ -62,7 +58,11 @@
 
                 # for development only
                 # this is the default location when you run d1 with `--local`
-                env.D1_DATABASE_FILEPATH = ".wrangler/state/v3/d1/miniflare-D1DatabaseObject/*.db";
+                env.D1_DATABASE_FILEPATH =
+                  let
+                    dbDir = ".wrangler/state/v3/d1/miniflare-D1DatabaseObject";
+                  in
+                  "${dbDir}/$(${pkgs.findutils}/bin/find ${dbDir} -maxdepth 1 -name '*.sqlite' ! -name '*-shm' ! -name '*-wal' -printf '%f\n' | head -n1)";
 
                 packages = with pkgs; [
                   jq
@@ -70,6 +70,8 @@
                   bun
                   taplo
                   direnv
+                  sqlite
+                  deadnix
                   sqlfluff
                   binaryen
                   nixfmt-rfc-style
