@@ -1,5 +1,7 @@
 name: Checks
 
+n
+
 on:
   pull_request:
   workflow_dispatch:
@@ -22,38 +24,37 @@ jobs:
       - name: 🔑 Checkout
         uses: actions/checkout@v4
 
-      - name: Install Nix
-        uses: cachix/install-nix-action@v30
-
-      - name: Setup Cachix
-        uses: cachix/cachix-action@v15
-        with:
-          name: 'devenv'
-
-      - name: Install devenv.sh
-        run: nix profile install nixpkgs#devenv
-
-      - name: Install direnv
+      - name: 🦀 Set up Rust
         run: |
-          nix profile install nixpkgs#direnv
-          nix profile install nixpkgs#nix-direnv
+          rustup set auto-self-update disable
+          rustup toolchain install 1.81.0 --profile minimal
+          rustup default 1.81.0
+
+      - name: Setup Rust Cache
+        uses: Swatinem/rust-cache@v2.7.5
+        with:
+          prefix-key: v0 # increment this to bust the cache if needed
+
+      - name: Install sccache
+        uses: mozilla-actions/sccache-action@v0.0.6
+        env:
+          RUSTC_WRAPPER: 'sccache'
+          SCCACHE_GHA_ENABLED: true
+
+      - name: 🐰 Set up Bun
+        uses: oven-sh/setup-bun@main
+        with:
+          bun-version: 'latest'
 
       - name: Format
         run: |
-          direnv allow
-          taplo fmt *.toml
+          bunx taplo@latest fmt *.toml
           cargo fmt --all --check
-          nixfmt *.nix --width=100
-          sqlfluff format --dialect sqlite schema.sql
 
       - name: Lint
         run: |
-          direnv allow
-          taplo lint *.toml
-          sqlfluff lint --dialect sqlite schema.sql
+          bunx taplo@latest lint *.toml
           cargo clippy --all-targets --all-features -- -D warnings
 
-      - name: Build
-        run: |
-          direnv allow
-          cargo build --release --target wasm32-unknown-unknown
+      - name: 🛠️ Build worker
+        run: cargo install --quiet worker-build && worker-build --release
