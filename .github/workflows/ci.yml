@@ -21,15 +21,9 @@ jobs:
     steps:
       - name: 🔑 Checkout
         uses: actions/checkout@v4
-      
-      - name: Check Nix flake inputs
-        uses: DeterminateSystems/flake-checker-action@v9
 
       - name: Install Nix
         uses: cachix/install-nix-action@v30
-        with:
-          extra_nix_config: |
-            access-token = github.com=${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Cachix
         uses: cachix/cachix-action@v15
