@@ -1,7 +1,4 @@
 {
-  echo-env.exec = ''
-    echo $D1_DATABASE_FILEPATH
-  '';
   wrangler.exec = ''
     bunx wrangler@latest --config='wrangler.toml' "$@"
   '';
