@@ -1,45 +1,58 @@
 {
   description = "URL Shortener Worker";
   inputs = {
-
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
-    systems.url = "github:nix-systems/default";
 
     devenv.url = "github:cachix/devenv";
     devenv.inputs.nixpkgs.follows = "nixpkgs";
 
+    systems.url = "github:nix-systems/default";
+
     fenix.url = "github:nix-community/fenix";
     fenix.inputs.nixpkgs.follows = "nixpkgs";
+
+    treefmt-nix.url = "github:numtide/treefmt-nix";
+
+    flake-root.url = "github:srid/flake-root";
+    flake-parts.url = "github:hercules-ci/flake-parts";
   };
 
   outputs =
-    {
+    inputs@{
       self,
       devenv,
-      nixpkgs,
       systems,
+      treefmt-nix,
+      flake-parts,
       ...
-    }@inputs:
-    let
-      forEachSystem = nixpkgs.lib.genAttrs (import systems);
-    in
-    {
-      packages = forEachSystem (system: {
-        devenv-up = self.devShells.${system}.default.config.procfileScript;
-      });
-      devShells = forEachSystem (
-        system:
-        let
-          pkgs = nixpkgs.legacyPackages.${system};
-        in
+    }:
+    flake-parts.lib.mkFlake { inherit inputs; } {
+      systems = import systems;
+      imports = [
+        inputs.devenv.flakeModule
+        inputs.flake-root.flakeModule
+        inputs.treefmt-nix.flakeModule
+      ];
+      perSystem =
         {
-          default = devenv.lib.mkShell {
+          config,
+          self',
+          pkgs,
+          ...
+        }:
+        {
+          treefmt.config = import ./treefmt.nix { inherit pkgs config treefmt-nix; };
+
+          formatter = config.treefmt.build.wrapper;
+          checks.formatting = config.treefmt.build.check self;
+
+          packages.devenv-up = self'.devShells.default.config.procfileScript;
+
+          devShells.default = devenv.lib.mkShell {
             inherit inputs pkgs;
             modules = [
               {
-                # https://devenv.sh/reference/options/
                 scripts = import ./tasks.nix;
-
                 dotenv.enable = true;
                 languages.nix.enable = true;
                 languages.rust = {
@@ -52,13 +65,10 @@
                     "clippy"
                     "rustfmt"
                     "rust-analyzer"
-
                   ];
                 };
 
-                # for development only
-                # this is the default location when you run d1 with `--local`
-                env.D1_DATABASE_FILEPATH = # TODO: there has to be a simpler and better way to do this
+                env.D1_DATABASE_FILEPATH =
                   let
                     dbDir = ".wrangler/state/v3/d1/miniflare-D1DatabaseObject";
                   in
@@ -68,25 +78,23 @@
                   jq
                   git
                   bun
-                  taplo
                   direnv
                   sqlite
+                  binaryen
+                  nodePackages_latest.nodejs
+                  taplo
                   deadnix
                   sqlfluff
-                  binaryen
                   nixfmt-rfc-style
-                  nodePackages_latest.nodejs
                 ];
               }
             ];
           };
-        }
-      );
+        };
     };
 
   nixConfig = {
     extra-substituters = "https://devenv.cachix.org";
     extra-trusted-public-keys = "devenv.cachix.org-1:w1cLUi8dv3hnoSPGAuibQv+f9TZLr6cv/Hm9XgU50cw=";
   };
-
 }

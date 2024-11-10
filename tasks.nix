@@ -2,12 +2,6 @@
   wrangler.exec = ''
     bunx wrangler@latest --config='wrangler.toml' "$@"
   '';
-  fmt.exec = ''
-    taplo fmt *.toml
-    nixfmt *.nix --width=100
-    cargo fmt --all -- --config-path=rustfmt.toml
-    sqlfluff format --dialect sqlite ./schema.sql
-  '';
   lint.exec = ''
     taplo lint *.toml
     cargo clippy --all-targets --all-features
