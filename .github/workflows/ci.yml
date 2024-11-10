@@ -1,5 +1,11 @@
 name: Checks
 
+#
+# NOTE:
+# everything under the 'checkout' step is temporary until I figure out how to use devenv.sh in gh actions
+# devenv has a guide for actions: https://devenv.sh/integrations/github-actions
+# but it doesn't work if you are using devenv this way: https://devenv.sh/guides/using-with-flakes
+
 on:
   pull_request:
   workflow_dispatch:
