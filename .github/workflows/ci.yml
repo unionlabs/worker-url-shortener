@@ -34,6 +34,7 @@ jobs:
         run: nix profile install nixpkgs#devenv
 
       - name: Format
+        shell: devenv shell bash -- -e {0}
         run: |
           taplo fmt *.toml
           cargo fmt --all --check
@@ -41,12 +42,12 @@ jobs:
           sqlfluff format --dialect sqlite schema.sql
 
       - name: Lint
+        shell: devenv shell bash -- -e {0}
         run: |
           taplo lint *.toml
           sqlfluff lint --dialect sqlite schema.sql
           cargo clippy --all-targets --all-features -- -D warnings
 
       - name: Build
-        run: |
-          # runs: `cargo build --release --target wasm32-unknown-unknown`
-          build
+        shell: devenv shell bash -- -e {0}
+        run: cargo build --release --target wasm32-unknown-unknown
