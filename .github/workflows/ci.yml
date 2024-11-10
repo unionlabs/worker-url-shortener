@@ -21,9 +21,15 @@ jobs:
     steps:
       - name: 🔑 Checkout
         uses: actions/checkout@v4
+      
+      - name: Check Nix flake inputs
+        uses: DeterminateSystems/flake-checker-action@v9
 
       - name: Install Nix
         uses: cachix/install-nix-action@v30
+        with:
+          extra_nix_config: |
+            access-token = github.com=${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Cachix
         uses: cachix/cachix-action@v15
@@ -33,21 +39,27 @@ jobs:
       - name: Install devenv.sh
         run: nix profile install nixpkgs#devenv
 
-      - name: Format
-        shell: devenv shell bash -- -e {0}
+      - name: Install direnv
         run: |
+          nix profile install nixpkgs#direnv
+          nix profile install nixpkgs#nix-direnv
+
+      - name: Format
+        run: |
+          direnv allow
           taplo fmt *.toml
           cargo fmt --all --check
           nixfmt *.nix --width=100
           sqlfluff format --dialect sqlite schema.sql
 
       - name: Lint
-        shell: devenv shell bash -- -e {0}
         run: |
+          direnv allow
           taplo lint *.toml
           sqlfluff lint --dialect sqlite schema.sql
           cargo clippy --all-targets --all-features -- -D warnings
 
       - name: Build
-        shell: devenv shell bash -- -e {0}
-        run: cargo build --release --target wasm32-unknown-unknown
+        run: |
+          direnv allow
+          cargo build --release --target wasm32-unknown-unknown
