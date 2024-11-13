@@ -33,6 +33,7 @@
           pkgs = nixpkgs.legacyPackages.${system};
         in
         {
+
           default = devenv.lib.mkShell {
             inherit inputs pkgs;
             modules = [
@@ -69,6 +70,7 @@
                   git
                   bun
                   taplo
+                  bacon
                   direnv
                   sqlite
                   deadnix

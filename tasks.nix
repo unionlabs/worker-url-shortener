@@ -10,7 +10,7 @@
   '';
   lint.exec = ''
     taplo lint *.toml
-    cargo clippy --all-targets --all-features
+    cargo clippy --all-targets --all-features -- -A clippy::pedantic
     sqlfluff lint --dialect sqlite ./schema.sql
     deadnix --no-lambda-pattern-names && statix check .
   '';

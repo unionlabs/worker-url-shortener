@@ -1,10 +1,8 @@
+#![warn(clippy::all, clippy::pedantic, clippy::cargo)]
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use url::Url;
-use worker::*;
-
-mod utils;
-use utils::*;
+use worker::{console_log, event, Context, Env, Request, Response, Result, RouteContext, Router};
 
 #[derive(Deserialize, Serialize)]
 struct Record {
@@ -13,28 +11,11 @@ struct Record {
     created_at: String,
 }
 
-use std::fmt;
-
-impl fmt::Display for KvError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            KvError::Secret(msg) => write!(f, "Secret error: {}", msg),
-            KvError::Var(msg) => write!(f, "Var error: {}", msg),
-        }
-    }
-}
-
-impl From<KvError> for worker::Error {
-    fn from(error: KvError) -> Self {
-        worker::Error::from(error.to_string())
-    }
-}
-
 const DEV_ROUTES: [&str; 2] = ["/list", "/env"];
 
 #[event(fetch)]
 async fn fetch(request: Request, env: Env, _context: Context) -> Result<Response> {
-    let environment = get_var("ENVIRONMENT", &env).unwrap_or_default();
+    let environment = env.var("ENVIRONMENT").unwrap().to_string();
     if environment.trim().is_empty() {
         return Response::error("not allowed", 403);
     }
@@ -48,11 +29,12 @@ async fn fetch(request: Request, env: Env, _context: Context) -> Result<Response
     let url = request.url()?;
     if DEV_ROUTES.contains(&url.path()) {
         if let Some(key) = url.query_pairs().find(|(k, _)| k == "key").map(|(_, v)| v) {
-            if let Ok(stored_key) = get_secret("DEV_ROUTES_KEY", &env) {
-                if key == stored_key {
-                    router = router.get_async("/list", dev_handle_list_urls);
-                }
+            console_log!("key: {:?}", key);
+            let stored_key = env.secret("DEV_ROUTES_KEY").unwrap().to_string();
+            if stored_key != key {
+                return router.run(request, env).await;
             }
+            router = router.get_async("/list", dev_handle_list_urls);
         }
     }
 
@@ -80,18 +62,22 @@ pub async fn handle_create(
 
     let query_statement = d1.prepare("SELECT id FROM urls ORDER BY id DESC LIMIT 1");
     let query = query_statement.bind(&[]);
-    let result = query?.first::<Value>(None).await?.unwrap();
+    let result = query?.first::<Value>(None).await?;
 
-    if let Value::Object(object) = result {
-        if let Some(Value::Number(id)) = object.get("id") {
-            return Response::ok(format!(
-                "https://{}/{}",
-                request.url().unwrap().host_str().unwrap(),
-                id
-            ));
-        }
-    }
-    Response::error("failed to insert new key", 500)
+    result
+        .unwrap()
+        .get("id")
+        .and_then(|o| o.as_str())
+        .map_or_else(
+            || Response::error("failed to insert new key", 500),
+            |id| {
+                Response::ok(format!(
+                    "https://{}/{}",
+                    request.url().unwrap().host_str().unwrap(),
+                    id
+                ))
+            },
+        )
 }
 
 // checks `GET /:key{[0-9]}`
@@ -106,9 +92,11 @@ pub async fn handle_url_expand(
         return Response::error("invalid key: ".to_string() + key, 400);
     }
 
-    let d1 = context.env.d1("DB");
-    let statement = d1?.prepare("SELECT url FROM urls WHERE id = ?");
-    let query = statement.bind(&[key.into()]);
+    let query = context
+        .env
+        .d1("DB")?
+        .prepare("SELECT url FROM urls WHERE id = ?")
+        .bind(&[key.into()]);
     let result: Option<Value> = query?.first::<Value>(None).await?;
 
     match result {
@@ -130,8 +118,8 @@ pub async fn dev_handle_list_urls(
     let d1 = context.env.d1("DB")?;
     let statement = d1.prepare("SELECT * FROM urls");
     // let query = statement.bind(&[])?;
-    let result = statement.all().await?;
+    // let result = statement.all().await?;
 
-    let records: Vec<Record> = result.results()?;
+    let records: Vec<Record> = statement.all().await?.results()?;
     Response::from_json(&records)
 }
