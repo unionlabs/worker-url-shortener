@@ -62,22 +62,18 @@ pub async fn handle_create(
 
     let query_statement = d1.prepare("SELECT id FROM urls ORDER BY id DESC LIMIT 1");
     let query = query_statement.bind(&[]);
-    let result = query?.first::<Value>(None).await?;
+    let result = query?.first::<Value>(None).await?.unwrap();
 
-    result
-        .unwrap()
-        .get("id")
-        .and_then(|o| o.as_str())
-        .map_or_else(
-            || Response::error("failed to insert new key", 500),
-            |id| {
-                Response::ok(format!(
-                    "https://{}/{}",
-                    request.url().unwrap().host_str().unwrap(),
-                    id
-                ))
-            },
-        )
+    if let Value::Object(object) = result {
+        if let Some(Value::Number(id)) = object.get("id") {
+            return Response::ok(format!(
+                "https://{}/{}",
+                request.url().unwrap().host_str().unwrap(),
+                id
+            ));
+        }
+    }
+    Response::error("failed to insert new key", 500)
 }
 
 // checks `GET /:key{[0-9]}`
