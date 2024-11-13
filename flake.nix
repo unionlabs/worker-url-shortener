@@ -38,6 +38,11 @@
             inherit inputs pkgs;
             modules = [
               {
+                enterShell = ''
+                  # temporary wrangler fix: https://github.com/cloudflare/workers-sdk/issues/3264#issuecomment-1642939487
+                  export SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+                '';
+
                 # https://devenv.sh/reference/options/
                 scripts = import ./tasks.nix;
 
