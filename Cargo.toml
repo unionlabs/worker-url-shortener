@@ -5,6 +5,8 @@ edition = "2021"
 license = "MIT"
 description = "A URL shortener"
 repository = "https://github.com/union-labs/url-shortener"
+keywords = ["cloudflare", "workers", "rust", "url", "shortener"]
+categories = ["web-programming::http-server", "web-programming::websocket"]
 
 [package.metadata.release]
 release = false
@@ -18,7 +20,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 url = "2.5.3"
-serde = { version = "1.0.214", features = ["derive"] }
+serde = { version = "1.0.215", features = ["derive"] }
 serde_json = "1.0.104"
 # needed to enable the "js" feature for compatibility with wasm,
 # see https://docs.rs/getrandom/#webassembly-support

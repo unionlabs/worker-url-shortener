@@ -1,44 +1,44 @@
+#![warn(clippy::all)]
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use url::Url;
-use worker::*;
+use worker::{console_log, event, Context, Env, Request, Response, Result, RouteContext, Router};
 
-mod utils;
-use utils::*;
+#[derive(Deserialize, Serialize)]
+struct Record {
+    id: u64,
+    url: String,
+    created_at: String,
+}
 
 const DEV_ROUTES: [&str; 2] = ["/list", "/env"];
 
 #[event(fetch)]
 async fn fetch(request: Request, env: Env, _context: Context) -> Result<Response> {
-    let environment = get_var("ENVIRONMENT", &env).unwrap_or_default();
+    let environment = env.var("ENVIRONMENT").unwrap().to_string();
     if environment.trim().is_empty() {
         return Response::error("not allowed", 403);
     }
 
-    let router = Router::new()
+    let mut router = Router::new()
         .get("/", |_, _| Response::ok("zkgm"))
         .post("/", |_, _| Response::ok("zkgm"))
         .post_async("/create", handle_create)
         .get_async("/:key", handle_url_expand);
 
     let url = request.url()?;
-    if !DEV_ROUTES.contains(&url.path()) {
-        return router.run(request, env).await;
+    if DEV_ROUTES.contains(&url.path()) {
+        if let Some(key) = url.query_pairs().find(|(k, _)| k == "key").map(|(_, v)| v) {
+            console_log!("key: {:?}", key);
+            let stored_key = env.secret("DEV_ROUTES_KEY").unwrap().to_string();
+            if stored_key != key {
+                return router.run(request, env).await;
+            }
+            router = router.get_async("/list", dev_handle_list_urls);
+        }
     }
 
-    let url_key = url.query().and_then(|q| q.split("key=").nth(1));
-    if url_key.is_none() {
-        return router.run(request, env).await;
-    }
-
-    let stored_key = get_secret("DEV_ROUTES_KEY", &env).unwrap_or_default();
-
-    if url_key != Some(&stored_key) {
-        return router.run(request, env).await;
-    }
-    return router
-        .get_async("/list", dev_handle_list_urls)
-        .run(request, env)
-        .await;
+    router.run(request, env).await
 }
 
 // handles `POST /create --data-binary 'https://example.com/foo/bar'`
@@ -88,9 +88,11 @@ pub async fn handle_url_expand(
         return Response::error("invalid key: ".to_string() + key, 400);
     }
 
-    let d1 = context.env.d1("DB");
-    let statement = d1?.prepare("SELECT url FROM urls WHERE id = ?");
-    let query = statement.bind(&[key.into()]);
+    let query = context
+        .env
+        .d1("DB")?
+        .prepare("SELECT url FROM urls WHERE id = ?")
+        .bind(&[key.into()]);
     let result: Option<Value> = query?.first::<Value>(None).await?;
 
     match result {
@@ -109,11 +111,11 @@ pub async fn dev_handle_list_urls(
     _request: Request,
     context: RouteContext<()>,
 ) -> worker::Result<Response> {
-    let d1 = context.env.d1("DB");
-    let statement = d1?.prepare("SELECT * FROM urls");
-    let query = statement.bind(&[]);
-    let result = query?.all().await?;
+    let d1 = context.env.d1("DB")?;
+    let statement = d1.prepare("SELECT * FROM urls");
+    // let query = statement.bind(&[])?;
+    // let result = statement.all().await?;
 
-    let urls: Vec<Value> = result.results()?;
-    Response::from_json(&urls)
+    let records: Vec<Record> = statement.all().await?.results()?;
+    Response::from_json(&records)
 }
