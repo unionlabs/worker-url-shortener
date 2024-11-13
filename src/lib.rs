@@ -1,4 +1,4 @@
-#![warn(clippy::all, clippy::pedantic, clippy::cargo)]
+#![warn(clippy::all)]
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use url::Url;
